@@ -6,8 +6,8 @@ let faceTarget;
 let faceDetected = false;
 
 function setup() {
-  createCanvas(640, 480);
-  emerald = new MasterEmerald(width / 2, height / 2 + 20, 1);
+  createCanvas(windowWidth, windowHeight);
+  emerald = new MasterEmerald(width / 2, height / 2, 1);
 
   video = createCapture(VIDEO);
   video.size(width, height);
@@ -37,6 +37,14 @@ function setup() {
   });
 
   camera.start();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  emerald.x = width / 2;
+  emerald.y = height / 2;
+  faceTarget.set(width / 2, height / 2);
+  video.size(width, height);
 }
 
 function draw() {
