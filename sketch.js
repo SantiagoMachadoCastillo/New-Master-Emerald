@@ -1,13 +1,74 @@
 let emerald;
+let camera;
+let faceMesh;
+let video;
+let faceTarget;
+let faceDetected = false;
 
 function setup() {
   createCanvas(640, 480);
   emerald = new MasterEmerald(width / 2, height / 2 + 20, 1);
+
+  video = createCapture(VIDEO);
+  video.size(width, height);
+  video.hide();
+
+  faceTarget = createVector(emerald.x, emerald.y);
+
+  faceMesh = new FaceMesh({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+  });
+
+  faceMesh.setOptions({
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5,
+  });
+
+  faceMesh.onResults(onFaceResults);
+
+  camera = new Camera(video.elt, {
+    onFrame: async () => {
+      await faceMesh.send({ image: video.elt });
+    },
+    width,
+    height,
+  });
+
+  camera.start();
 }
 
 function draw() {
+  if (faceDetected) {
+    emerald.x = lerp(emerald.x, faceTarget.x, 0.2);
+    emerald.y = lerp(emerald.y, faceTarget.y, 0.2);
+  }
+
   background(0, 0, 255);
   emerald.show();
+
+  fill(255);
+  noStroke();
+  textSize(14);
+  textAlign(LEFT, TOP);
+  text(faceDetected ? 'Rostro detectado' : 'Buscando rostro...', 12, 12);
+}
+
+function onFaceResults(results) {
+  if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+    faceDetected = false;
+    faceTarget.set(width / 2, height / 2 + 20);
+    return;
+  }
+
+  const landmarks = results.multiFaceLandmarks[0];
+  const noseTip = landmarks[1];
+  const targetX = width - noseTip.x * width;
+  const targetY = noseTip.y * height;
+
+  faceTarget.set(targetX, targetY);
+  faceDetected = true;
 }
 
 class MasterEmerald {
